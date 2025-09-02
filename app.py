@@ -113,7 +113,7 @@ st.set_page_config(page_title="Transpositor de Acordes", page_icon="🎵", layou
 
 # Título e descrição
 st.title("🎵 Transpositor de Acordes")
-st.markdown("Uma ferramenta simples para transpor tonalidades de músicas. Escreva os acordes, escolha o intervalo e a direção.")
+st.markdown("Uma ferramenta simples para transpor tonalidades de acordes. Insira os acordes, escolha se quer aumentar ou diminuir o tom e em quantos tons será essa alteração.")
 
 # --- Inputs do Usuário ---
 st.header("1. Insira os acordes")
@@ -157,14 +157,20 @@ if st.button("Transpor Acordes!", type="primary", use_container_width=True):
         
         # Cria colunas para um visual lado a lado
         num_acordes = len(acordes_originais)
-        cols = st.columns(num_acordes)
+        # O parâmetro 'gap' ajuda a dar um pouco mais de espaço
+        cols = st.columns(num_acordes, gap="small") 
 
         for i in range(num_acordes):
             with cols[i]:
-                # st.metric é ótimo para exibir uma mudança "de -> para"
-                st.metric(label=f"Original: **{acordes_originais[i]}**", value=f"**{acordes_transpostos[i]}**")
-        
-        st.markdown("---") # Divisor visual
+                # Usando st.markdown com HTML para um layout customizado, compacto e centralizado.
+        # Isso evita o problema de corte de texto do st.metric.
+                st.markdown(f"""
+                <div style="text-align: center; border: 1px solid #333; border-radius: 5px; padding: 5px;">
+                    <span style="font-size: 0.9em; opacity: 0.7;">{acordes_originais[i]}</span>
+                    <br>
+                    <strong style="font-size: 1.5em; color: #FF4B4B;">{acordes_transpostos[i]}</strong>
+                </div>
+                """, unsafe_allow_html=True)
 
         # --- Exibição das Informações Adicionais ---
         if expl_in or expl_out:
