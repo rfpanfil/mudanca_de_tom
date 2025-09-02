@@ -201,4 +201,4 @@ if st.button("Transpor Acordes!", type="primary", use_container_width=True):
 
 # --- Rodapé ---
 st.markdown("---")
-st.markdown("Desenvolvido a partir de um script Python. Adaptado para web com Streamlit.")
+st.markdown("Desenvolvido para a Glória de Deus.\nCopyright © Rafael Panfil")
