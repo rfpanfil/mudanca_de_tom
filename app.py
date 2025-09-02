@@ -172,6 +172,21 @@ if st.button("Transpor Acordes!", type="primary", use_container_width=True):
                 </div>
                 """, unsafe_allow_html=True)
 
+        st.markdown("---") # Esta é a linha divisória após os resultados visuais
+        
+        # --- NOVO BLOCO PARA COPIAR E COLAR ---
+        st.subheader("📝 Copie os acordes aqui")
+
+        # Junta as listas de acordes em strings separadas por espaço
+        originais_str = ' '.join(acordes_originais)
+        transpostos_str = ' '.join(acordes_transpostos)
+
+        # Formata o texto final com as duas linhas
+        texto_para_copiar = f"Originais:   {originais_str}\nTranspostos: {transpostos_str}"
+
+        # Exibe o texto em um bloco de código com botão de cópia
+        st.code(texto_para_copiar, language="text")
+
         # --- Exibição das Informações Adicionais ---
         if expl_in or expl_out:
             with st.expander("ℹ️ Informações Adicionais (Notas Enarmônicas)"):
