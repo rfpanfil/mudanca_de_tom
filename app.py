@@ -5,10 +5,10 @@ import docx
 import io
 
 # ==============================================================================
-# 1. LÓGICA E FUNÇÕES (UNIÃO DOS DOIS ARQUIVOS)
+# 1. LÓGICA E FUNÇÕES (COM A CORREÇÃO DE RECONHECIMENTO DE CIFRA)
 # ==============================================================================
 
-# --- Dicionários e Mapas (comuns a ambas as funcionalidades) ---
+# --- Dicionários e Mapas ---
 MAPA_NOTAS = {
     "C": 0, "C#": 1, "Db": 1, "D": 2, "D#": 3, "Eb": 3, "E": 4, "F": 5,
     "F#": 6, "Gb": 6, "G": 7, "G#": 8, "Ab": 8, "A": 9, "A#": 10, "Bb": 10, "B": 11,
@@ -21,10 +21,8 @@ EXPLICACAO_NOTAS_TEORICAS_ENTRADA = {
     "Fb": "Fá bemol (Fb) é enarmônico a Mi (E).",
     "Cb": "Dó bemol (Cb) é enarmônico a Si (B)."
 }
-# (O dicionário EXPLICACAO_ENARMONICA_SAIDA não estava sendo usado na sua última versão,
-# mas posso adicioná-lo de volta se você quiser as explicações de notas como C##)
 
-# --- Funções para a "Transposição de Sequência" (do seu app.py) ---
+# --- Funções para a "Transposição de Sequência" ---
 def transpor_acordes_sequencia(acordes_originais, acao, intervalo):
     intervalo_semitons = int(intervalo * 2)
     acordes_transpostos = []
@@ -55,7 +53,6 @@ def transpor_acordes_sequencia(acordes_originais, acao, intervalo):
         novo_valor_nota = (valor_nota_original + semitons_ajuste + 12) % 12
         nova_nota_fundamental = MAPA_VALORES_NOTAS[novo_valor_nota]
         
-        # Lógica para transpor a nota do baixo (ex: G/B)
         if '/' in qualidade_acorde:
             partes = qualidade_acorde.split('/')
             qualidade = partes[0]
@@ -73,16 +70,15 @@ def transpor_acordes_sequencia(acordes_originais, acao, intervalo):
                 novo_baixo = MAPA_VALORES_NOTAS[novo_valor_baixo]
                 acorde_transposto_final = f"{nova_nota_fundamental}{qualidade}/{novo_baixo}"
             else:
-                acorde_transposto_final = f"{nova_nota_fundamental}{qualidade_acorde}" # Baixo não reconhecido
+                acorde_transposto_final = f"{nova_nota_fundamental}{qualidade_acorde}"
         else:
             acorde_transposto_final = f"{nova_nota_fundamental}{qualidade_acorde}"
             
         acordes_transpostos.append(acorde_transposto_final)
 
-    # (A variável expl_out não estava sendo usada, então simplifiquei o retorno)
     return acordes_transpostos, list(explicacoes_entrada)
 
-# --- Funções para a "Transposição de Cifra Completa" (do app_cifras.py) ---
+# --- Funções para a "Transposição de Cifra Completa" ---
 def ler_arquivo(arquivo):
     if arquivo.name.endswith('.docx'):
         try:
@@ -98,13 +94,36 @@ def ler_arquivo(arquivo):
             st.error(f"Erro ao ler o arquivo de texto: {e}")
             return None
 
+def is_chord_line(line):
+    """
+    Verifica se uma linha é provavelmente uma linha de acordes.
+    """
+    line = line.strip()
+    if not line:
+        return False
+
+    chord_pattern = re.compile(r'^[A-G][b#]?(m|M|dim|aug|sus|add|maj|º|°|/|[-+])?(\d+)?(\(?[^)\s]*\)?)?(/[A-G][b#]?)?$')
+    
+    line_for_analysis = line.replace('/:', '').replace('|', '').strip()
+    words = line_for_analysis.split()
+    
+    if not words:
+        return False
+
+    chord_count = 0
+    for word in words:
+        if chord_pattern.match(word):
+            chord_count += 1
+    
+    # Se mais de 75% das palavras forem acordes, é uma linha de acordes.
+    return (chord_count / len(words)) >= 0.75
+
 def processar_cifra(texto_cifra, acao, intervalo):
     semitons = int(intervalo * 2)
     if acao == 'Diminuir':
         semitons = -semitons
 
-    # Expressão regular para encontrar acordes
-    padrao_acorde = r'\b([A-G][b#]?)([^A-G\s,.\n]*)?(/[A-G][b#]?)?\b'
+    padrao_acorde_busca = r'\b([A-G][b#]?)([^A-G\s,.\n]*)?(/[A-G][b#]?)?\b'
     
     def replacer(match):
         acorde_completo = match.group(0)
@@ -112,10 +131,8 @@ def processar_cifra(texto_cifra, acao, intervalo):
         qualidade = match.group(2) or ""
         baixo = match.group(3) or ""
         
-        # Transpõe a nota fundamental
         nova_nota_fundamental = transpor_nota_individual(nota_fundamental_str, semitons)
         
-        # Transpõe o baixo, se existir
         novo_baixo = ""
         if baixo:
             nota_baixo_str = baixo.replace('/', '')
@@ -123,7 +140,15 @@ def processar_cifra(texto_cifra, acao, intervalo):
             
         return f"{nova_nota_fundamental}{qualidade}{novo_baixo}"
 
-    return re.sub(padrao_acorde, replacer, texto_cifra)
+    linhas_finais = []
+    for linha in texto_cifra.split('\n'):
+        if is_chord_line(linha):
+            linha_transposta = re.sub(padrao_acorde_busca, replacer, linha)
+            linhas_finais.append(linha_transposta)
+        else:
+            linhas_finais.append(linha)
+            
+    return "\n".join(linhas_finais)
 
 def transpor_nota_individual(nota_str, semitons):
     nota_key = ""
@@ -139,7 +164,7 @@ def transpor_nota_individual(nota_str, semitons):
     return MAPA_VALORES_NOTAS[novo_valor]
 
 # ==============================================================================
-# 2. INTERFACE GRÁFICA COM STREAMLIT (UNIFICADA COM ABAS)
+# 2. INTERFACE GRÁFICA COM STREAMLIT
 # ==============================================================================
 
 st.set_page_config(page_title="Transpositor de Acordes", page_icon="🎵", layout="centered")
@@ -147,7 +172,6 @@ st.set_page_config(page_title="Transpositor de Acordes", page_icon="🎵", layou
 st.title("🎵 Transpositor Universal de Acordes")
 st.markdown("Uma ferramenta completa para transpor tanto sequências simples de acordes quanto cifras de músicas inteiras.")
 
-# --- CONTROLES DE TRANSPOSIÇÃO (COMUNS A AMBAS AS ABAS) ---
 st.header("1. Escolha a transposição")
 col1, col2 = st.columns(2)
 with col1:
@@ -157,10 +181,8 @@ with col2:
 
 st.header("2. Insira os acordes ou a cifra")
 
-# --- ABAS PARA CADA FUNCIONALIDADE ---
 tab_sequencia, tab_cifra = st.tabs(["Transpor Sequência", "Transpor Cifra Completa"])
 
-# --- ABA 1: TRANSPOR SEQUÊNCIA DE ACORDES ---
 with tab_sequencia:
     st.markdown("Use esta aba para transpor uma lista simples de acordes separados por espaço.")
     sequencia_input = st.text_input("Sequência de acordes:", placeholder="Ex: G D/F# Em C")
@@ -174,7 +196,6 @@ with tab_sequencia:
 
             st.subheader("🎸 Resultado da Sequência")
             
-            # Layout visual em colunas
             cols = st.columns(len(acordes_originais), gap="small")
             for i, col in enumerate(cols):
                 with col:
@@ -187,25 +208,21 @@ with tab_sequencia:
             
             st.markdown("---")
             
-            # Bloco para copiar
             st.subheader("📝 Copie os acordes aqui")
             originais_str = ' '.join(acordes_originais)
             transpostos_str = ' '.join(acordes_transpostos)
             texto_para_copiar = f"Originais:   {originais_str}\nTranspostos: {transpostos_str}"
             st.code(texto_para_copiar, language="text")
 
-            # Informações adicionais
             if expl_in:
                 with st.expander("ℹ️ Informações Adicionais"):
                     st.markdown("**Notas na sua sequência original:**")
                     for e in expl_in:
                         st.info(e)
 
-# --- ABA 2: TRANSPOR CIFRA COMPLETA ---
 with tab_cifra:
     st.markdown("Use esta aba para colar o texto de uma cifra completa ou enviar um arquivo (.txt, .docx).")
     
-    # Sub-abas para os métodos de entrada
     input_tab1, input_tab2 = st.tabs(["📄 Colar Texto", "📁 Enviar Arquivo"])
     texto_cifra = ""
     with input_tab1:
@@ -227,6 +244,5 @@ with tab_cifra:
             st.subheader("🎸 Cifra Transposta")
             st.code(cifra_transposta, language='text')
 
-# --- Rodapé (seu copyright) ---
 st.markdown("---")
 st.markdown("Desenvolvido para a Glória de Deus.\nCopyright © Rafael Panfil")
