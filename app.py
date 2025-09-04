@@ -149,14 +149,14 @@ def transpor_nota_individual(nota_str, semitons):
     return MAPA_VALORES_NOTAS[novo_valor]
 
 # ==============================================================================
-# 2. INTERFACE GRÁFICA COM STREAMLIT (COM BOTÃO DE DOWNLOAD)
+# 2. INTERFACE GRÁFICA COM STREAMLIT (COM BOTÃO DE LIMPAR)
 # ==============================================================================
 
 st.set_page_config(page_title="Transpositor de Acordes", page_icon="🎵", layout="centered")
 st.title("🎵 Transpositor Universal de Acordes")
 st.markdown("Uma ferramenta completa para transpor tanto sequências simples de acordes quanto cifras de músicas inteiras.")
 
-# --- Inicializa o session_state para guardar o resultado da cifra ---
+# --- Inicializa o session_state ---
 if 'cifra_transposta' not in st.session_state:
     st.session_state.cifra_transposta = ""
 if 'nome_arquivo' not in st.session_state:
@@ -207,7 +207,7 @@ with tab_sequencia:
                     for e in expl_in:
                         st.info(e)
 
-# --- ABA 2: TRANSPOR CIFRA COMPLETA (COM LÓGICA DE DOWNLOAD) ---
+# --- ABA 2: TRANSPOR CIFRA COMPLETA (COM LÓGICA DE LIMPAR) ---
 with tab_cifra:
     st.markdown("Use esta aba para colar o texto de uma cifra completa ou enviar um arquivo (.txt, .docx).")
     
@@ -231,18 +231,28 @@ with tab_cifra:
         if not texto_cifra:
             st.warning("Por favor, cole um texto ou envie um arquivo com a cifra.")
         else:
-            # Salva o resultado no session_state para que ele persista
             st.session_state.cifra_transposta = processar_cifra(texto_cifra, acao, intervalo)
             st.session_state.nome_arquivo = f"{nome_original}_transposta.txt"
+            # **NOVO**: Limpa o conteúdo dos widgets de entrada após a transposição para evitar confusão
+            st.session_state.texto_area = ""
+            # (Não é possível limpar o file_uploader programaticamente de forma simples, mas o texto extraído dele não será mais usado)
+
 
     # --- ÁREA DE RESULTADO E DOWNLOAD ---
-    # Esta seção agora fica fora do "if button" e lê o resultado do session_state.
-    # Isso garante que o resultado e o botão de download permaneçam na tela.
     if st.session_state.cifra_transposta:
-        st.subheader("🎸 Cifra Transposta")
+        # **NOVO**: Layout em colunas para o título e o botão de limpar
+        col_titulo, col_botao_limpar = st.columns([0.75, 0.25])
+        with col_titulo:
+            st.subheader("🎸 Cifra Transposta")
+        with col_botao_limpar:
+            # **NOVO**: Botão para limpar o resultado
+            if st.button("Limpar Resultado 🗑️"):
+                st.session_state.cifra_transposta = ""
+                st.session_state.nome_arquivo = ""
+                st.rerun() # Força a atualização da página para o resultado desaparecer
+
         st.code(st.session_state.cifra_transposta, language='text')
         
-        # O botão de download
         st.download_button(
             label="📥 Baixar Cifra Transposta (.txt)",
             data=st.session_state.cifra_transposta.encode('utf-8'),
