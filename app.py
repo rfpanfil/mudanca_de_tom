@@ -231,10 +231,13 @@ with tab_cifra:
         if not texto_cifra:
             st.warning("Por favor, cole um texto ou envie um arquivo com a cifra.")
         else:
+            # Salva o resultado no session_state para que ele persista
             st.session_state.cifra_transposta = processar_cifra(texto_cifra, acao, intervalo)
             st.session_state.nome_arquivo = f"{nome_original}_transposta.txt"
-            # **NOVO**: Limpa o conteúdo dos widgets de entrada após a transposição para evitar confusão
-            st.session_state.texto_area = ""
+            
+            # **CORREÇÃO**: Só limpa a área de texto se ela foi a fonte da entrada.
+            if texto_cifra_area:
+                st.session_state.texto_area = ""
             # (Não é possível limpar o file_uploader programaticamente de forma simples, mas o texto extraído dele não será mais usado)
 
 
